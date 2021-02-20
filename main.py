@@ -4,12 +4,13 @@ from typing import List, Tuple
 import numpy as np
 
 
-def get_possible_states(state: (int, int), max_rows: int, max_columns: int, goal_states: List[Tuple[int, int]]) -> List[
+def get_possible_states(state: (int, int), max_rows: int, max_columns: int, goal_states: List[Tuple[int, int]],
+                        is_utility: bool) -> List[
     Tuple[int, int]]:
     possible_states = []
 
-    if state in goal_states:
-        return possible_states # return possible state empty for goal states
+    if state in goal_states and is_utility:
+        return possible_states  # return possible state empty for goal states
 
     if state[0] != 0:
         # it can go up
@@ -48,7 +49,7 @@ def update_calculations(policies, rw, value: np.array, goal_states: List[Tuple[i
     while i < max_rows:
         j: int = 0
         while j < max_columns:
-            possible_states: List[(int, int)] = get_possible_states((i, j), max_rows, max_columns, goal_states)
+            possible_states: List[(int, int)] = get_possible_states((i, j), max_rows, max_columns, goal_states, True)
             state_scores = list(map(lambda state: value[state[0], state[1]], possible_states))
             if len(state_scores) > 0:
                 new_value[i, j] = rw[i, j] + state_scores[np.argmax(state_scores)]
@@ -62,11 +63,17 @@ def update_calculations(policies, rw, value: np.array, goal_states: List[Tuple[i
     while i < max_rows:
         j: int = 0
         while j < max_columns:
-            possible_states: List[(int, int)] = get_possible_states((i, j), max_rows, max_columns, goal_states)
+            possible_states: List[(int, int)] = get_possible_states((i, j), max_rows, max_columns, goal_states, False)
+            state_scores = list(map(lambda state: new_value[state[0], state[1]], possible_states))
+            policies[(i, j)] = possible_states[np.argmax(state_scores)]
             j += 1
         i += 1
-    # calculate the policy given the utility for that
 
+    print("return values: \n")
+    print(policies)
+    print("\n")
+    print(new_value)
+    # calculate the policy given the utility for that
     return policies, new_value
 
 
@@ -92,20 +99,23 @@ def run_experiments(default_reward: float):
     utility_matrix: np.array = np.zeros((3, 4))
 
     # define policies
-    policies = [[], [], [], []]
+    policies = {}
 
     #  a minha equação de estabilidade pode ser entendida da seguinte maneira
-    # se a mudança de valores não modificou a soma total em mais de 10%, então a matriz está equilibrada.
+    # se a mudança de valores não modificou a soma total em mais de 5%, então a matriz está equilibrada.
     previous_utility_matrix = copy.deepcopy(utility_matrix)
     policies, utility_matrix = update_calculations(policies, reward_matrix, utility_matrix, goal_states)
-    times = 10
-    i = 0
-    while i < times:
+    while abs(sum(sum(utility_matrix)) - sum(sum(previous_utility_matrix))) > 0.01:
         previous_utility_matrix = copy.deepcopy(utility_matrix)
         policies, utility_matrix = update_calculations(policies, reward_matrix, previous_utility_matrix, goal_states)
-        i += 1
+        print(sum(sum(previous_utility_matrix)))
+        print(sum(sum(utility_matrix)))
 
     print("stabilized matrix")
+    print("policies: ")
+    print(policies)
+    print("utility matrix: ")
+    print(utility_matrix)
     # utility_matrix: np.array = update_utility_matrix(reward_matrix, utility_matrix)
 
     # define policies given utility matrix
@@ -117,4 +127,5 @@ if __name__ == '__main__':
     possible_rewards = [-0.4, -0.04, -0.0004]
     fading_factor = [0.8, 0.3, 0.1, 0.05, 0.0005]
     for chosen_reward in possible_rewards:
+        print(f"EXPERIMENT FOR REWARD: {chosen_reward}")
         run_experiments(chosen_reward)
