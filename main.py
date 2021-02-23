@@ -82,7 +82,7 @@ def run_experiments(default_reward: float):
     # define initial utilities matrix
     matrix: np.array = np.zeros((3, 4))
 
-    print(matrix)
+    # print(matrix)
 
     # define reward matrix
 
@@ -93,7 +93,7 @@ def run_experiments(default_reward: float):
     reward_matrix[2, 3] = 0.2
     reward_matrix[1, 1] = -0.5
 
-    print(reward_matrix)
+    # print(reward_matrix)
 
     # define utility matrix
     utility_matrix: np.array = np.zeros((3, 4))
@@ -105,13 +105,24 @@ def run_experiments(default_reward: float):
     # se a mudança de valores não modificou a soma total em mais de 5%, então a matriz está equilibrada.
     previous_utility_matrix = copy.deepcopy(utility_matrix)
     policies, utility_matrix = update_calculations(policies, reward_matrix, utility_matrix, goal_states)
-    while abs(sum(sum(utility_matrix)) - sum(sum(previous_utility_matrix))) > 0.01:
+
+    previous_difference = np.inf
+    actual_difference = sum(sum(previous_utility_matrix)) - sum(sum(utility_matrix))
+    rate_of_change = abs(actual_difference) - abs(previous_difference)
+    multiple_run = False
+    run_amount = 0
+    while (rate_of_change > 0.05 or abs(actual_difference)/abs(sum(sum(utility_matrix))) > 0.05) or not multiple_run:
         previous_utility_matrix = copy.deepcopy(utility_matrix)
         policies, utility_matrix = update_calculations(policies, reward_matrix, previous_utility_matrix, goal_states)
         print(sum(sum(previous_utility_matrix)))
         print(sum(sum(utility_matrix)))
+        previous_difference = actual_difference
+        actual_difference = sum(sum(previous_utility_matrix)) - sum(sum(utility_matrix))
+        rate_of_change = (abs(actual_difference) - abs(previous_difference))/abs(previous_difference)
+        multiple_run = True
+        run_amount += 1
 
-    print("stabilized matrix")
+    print(f"stabilized matrix after {run_amount} runs")
     print("policies: ")
     print(policies)
     print("utility matrix: ")
